@@ -5,19 +5,15 @@ const nav = [
   { to: "/", label: "Home" },
   { to: "/report", label: "Report" },
   { to: "/about", label: "About" },
-  { to: "/contact", label: "Contact" },
 ] as const;
 
 function BrandMark() {
   return (
-    <span className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-white shadow-card ring-1 ring-border">
-      <span className="grid grid-cols-2 gap-[3px]">
-        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-        <span className="h-1.5 w-1.5 rounded-full bg-foreground/85" />
-        <span className="h-1.5 w-1.5 rounded-full bg-foreground/85" />
-        <span className="h-1.5 w-1.5 rounded-full bg-foreground/85" />
-      </span>
-    </span>
+    <img
+      src="/logo.jpg"
+      alt="Mzuzu University Logo"
+      className="inline-flex h-9 w-9 rounded-[10px] bg-primary/10 object-contain p-0.5 shadow-card ring-1 ring-primary/30"
+    />
   );
 }
 
@@ -84,7 +80,7 @@ export function SiteHeader() {
 
   return (
     <header className="relative z-50 w-full bg-transparent">
-      <div className="mx-auto grid h-20 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6 sm:px-10">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 sm:px-10">
         <Link
           to="/"
           className="flex items-center gap-2.5 font-semibold tracking-tight text-foreground"
@@ -94,7 +90,7 @@ export function SiteHeader() {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-8 md:flex absolute left-1/2 -translate-x-1/2">
           {nav.map((n) => (
             <Link
               key={n.to}
@@ -108,19 +104,7 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center justify-end gap-3 sm:gap-5">
-          <Link
-            to="/admin"
-            className="hidden text-sm font-medium text-foreground hover:opacity-70 sm:inline-flex"
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/report"
-            className="hidden sm:inline-flex items-center rounded-full border border-foreground/80 bg-transparent px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground hover:text-background"
-          >
-            Get started
-          </Link>
+        <div className="flex items-center justify-end">
           <AnimatedHamburger
             open={mobileOpen}
             onClick={() => setMobileOpen((o) => !o)}
@@ -170,18 +154,6 @@ export function SiteHeader() {
               );
             })}
             <hr className="my-2 border-border" />
-            <Link
-              to="/admin"
-              className="rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              Sign in
-            </Link>
-            <Link
-              to="/report"
-              className="mt-1 inline-flex items-center justify-center rounded-full border border-foreground/80 bg-transparent px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-foreground hover:text-background"
-            >
-              Get started
-            </Link>
           </nav>
         </div>
       </div>

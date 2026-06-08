@@ -41,13 +41,12 @@ export function HomeLoader() {
     >
       <div className="bg-dotted absolute inset-0 opacity-50" />
       <div className="relative flex flex-col items-center gap-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-soft ring-1 ring-border animate-scale-in">
-          <span className="grid grid-cols-2 gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-primary animate-pulse" />
-            <span className="h-2.5 w-2.5 rounded-full bg-teal animate-pulse [animation-delay:120ms]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-success animate-pulse [animation-delay:240ms]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-primary/70 animate-pulse [animation-delay:360ms]" />
-          </span>
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 shadow-soft ring-1 ring-primary/30 animate-scale-in p-2">
+          <img
+            src="/logo.jpg"
+            alt="Mzuzu University Logo"
+            className="h-full w-full object-contain animate-pulse"
+          />
         </div>
         <h1 className="flex flex-wrap items-baseline justify-center gap-x-3 text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
           {words.map((w, i) => (

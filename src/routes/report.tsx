@@ -70,8 +70,26 @@ function ReportPage() {
 
     setSubmitting(true);
     try {
-      const urgency = await predictUrgency(text);
-      const id = generateReportId();
+      // Send report to backend which will run prediction and store it
+      const res = await fetch("http://localhost:8000/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category,
+          text: text.trim(),
+          reporting_type: reportingType,
+          full_name: reportingType === "Non-Anonymous" ? fullName.trim() : undefined,
+          phone: reportingType === "Non-Anonymous" ? phone.trim() || undefined : undefined,
+          email: reportingType === "Non-Anonymous" ? email.trim() || undefined : undefined,
+          preferred_contact: reportingType === "Non-Anonymous" ? (preferredContact || undefined) as ContactMethod | undefined : undefined,
+          incident_date: incidentDate || undefined,
+          incident_location: incidentLocation.trim() || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to submit report");
+      const json = await res.json();
+      const id = json.report_id;
+      // mirror into local store for admin UI
       addReport({
         id,
         createdAt: new Date().toISOString(),
@@ -84,7 +102,7 @@ function ReportPage() {
         preferredContact: reportingType === "Non-Anonymous" ? (preferredContact || undefined) as ContactMethod | undefined : undefined,
         incidentDate: incidentDate || undefined,
         incidentLocation: incidentLocation.trim() || undefined,
-        urgency,
+        urgency: json.urgency,
         status: "New",
         notes: [],
         auditLog: [
@@ -92,6 +110,8 @@ function ReportPage() {
         ],
       });
       setSubmitted({ id });
+    } catch (err) {
+      toast.error("Failed to submit report. Please try again later.");
     } finally {
       setSubmitting(false);
     }
