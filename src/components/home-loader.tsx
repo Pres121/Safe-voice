@@ -43,7 +43,7 @@ export function HomeLoader() {
       <div className="relative flex flex-col items-center gap-6">
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 shadow-soft ring-1 ring-primary/30 animate-scale-in p-2">
           <img
-            src="/logo.jpg"
+            src="/mzuni_logo.png"
             alt="Mzuzu University Logo"
             className="h-full w-full object-contain animate-pulse"
           />

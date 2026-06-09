@@ -1,5 +1,9 @@
 import type { Urgency } from "./reports/types";
 
+const FASTAPI_BASE_URL =
+  (import.meta.env.VITE_FASTAPI_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
+  "http://localhost:8000";
+
 /**
  * Placeholder ML service for urgency classification.
  * Replace the body of `predictUrgency` with a real `fetch("/api/predict", ...)`
@@ -10,7 +14,7 @@ import type { Urgency } from "./reports/types";
  */
 export async function predictUrgency(text: string): Promise<Urgency> {
   try {
-    const res = await fetch("http://localhost:8000/predict", {
+    const res = await fetch(`${FASTAPI_BASE_URL}/api/v1/ml/predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),

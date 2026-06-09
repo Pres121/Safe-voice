@@ -13,10 +13,13 @@ import { z } from "zod";
 import {
   WELFARE_CATEGORIES, type WelfareCategory, type ReportingType, type ContactMethod,
 } from "@/lib/reports/types";
-import { addReport, generateReportId } from "@/lib/reports-store";
-import { predictUrgency } from "@/lib/ml-service";
+import { addReport } from "@/lib/reports-store";
 import { CheckCircle2, ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+const FASTAPI_BASE_URL =
+  (import.meta.env.VITE_FASTAPI_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
+  "http://localhost:8000";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
@@ -71,7 +74,7 @@ function ReportPage() {
     setSubmitting(true);
     try {
       // Send report to backend which will run prediction and store it
-      const res = await fetch("http://localhost:8000/reports", {
+      const res = await fetch(`${FASTAPI_BASE_URL}/api/v1/reports`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

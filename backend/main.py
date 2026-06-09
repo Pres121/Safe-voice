@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from typing import List
 from datetime import datetime
@@ -6,7 +6,7 @@ import json
 
 from .db import init_db, engine, get_session
 from .models import User, Report
-from .schemas import PredictRequest, PredictResponse, ReportCreate, Token
+from .schemas import PredictRequest, PredictResponse, ReportCreate, Token, ReportCreateResponse, ReportListItem
 from .auth import verify_password, get_password_hash, create_access_token
 from .ml import predict
 from sqlmodel import Session, select
@@ -23,7 +23,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+
+ml_router = APIRouter(prefix="/api/v1/ml", tags=["ml"])
+reports_router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
+auth_router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 @app.on_event("startup")
@@ -38,14 +42,14 @@ def on_startup():
             session.commit()
 
 
-@app.post("/predict", response_model=PredictResponse)
+@ml_router.post("/predict", response_model=PredictResponse)
 def api_predict(req: PredictRequest):
     label = predict(req.text)
     urgency = label or "Low"
     return {"label": label or "unknown", "urgency": urgency}
 
 
-@app.post("/reports")
+@reports_router.post("", response_model=ReportCreateResponse)
 def create_report(rc: ReportCreate):
     label = predict(rc.text) or "unknown"
     report_id = rc.report_id or f"SWR-{int(datetime.utcnow().timestamp())}"
@@ -70,10 +74,10 @@ def create_report(rc: ReportCreate):
         session.add(r)
         session.commit()
         session.refresh(r)
-    return {"report_id": r.report_id, "urgency": r.urgency}
+    return {"report_id": r.report_id, "urgency": r.urgency or "unknown"}
 
 
-@app.post("/auth/token", response_model=Token)
+@auth_router.post("/token", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == form_data.username)).first()
@@ -101,7 +105,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         return user
 
 
-@app.get("/reports", response_model=List[dict])
+@reports_router.get("", response_model=List[ReportListItem])
 def list_reports(user: User = Depends(get_current_user)):
     with Session(engine) as session:
         rows = session.exec(select(Report).order_by(Report.created_at.desc())).all()
@@ -116,3 +120,34 @@ def list_reports(user: User = Depends(get_current_user)):
                 "status": r.status,
             })
     return out
+
+
+@app.get("/health", tags=["system"])
+def health():
+    return {"status": "ok"}
+
+
+# Backward-compatible aliases for existing frontend callers.
+@app.post("/predict", response_model=PredictResponse, tags=["compat"])
+def api_predict_compat(req: PredictRequest):
+    return api_predict(req)
+
+
+@app.post("/reports", response_model=ReportCreateResponse, tags=["compat"])
+def create_report_compat(rc: ReportCreate):
+    return create_report(rc)
+
+
+@app.get("/reports", response_model=List[ReportListItem], tags=["compat"])
+def list_reports_compat(user: User = Depends(get_current_user)):
+    return list_reports(user)
+
+
+@app.post("/auth/token", response_model=Token, tags=["compat"])
+def login_compat(form_data: OAuth2PasswordRequestForm = Depends()):
+    return login(form_data)
+
+
+app.include_router(ml_router)
+app.include_router(reports_router)
+app.include_router(auth_router)

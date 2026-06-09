@@ -23,3 +23,17 @@ class ReportCreate(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class ReportCreateResponse(BaseModel):
+    report_id: str
+    urgency: str
+
+
+class ReportListItem(BaseModel):
+    report_id: str
+    created_at: str
+    category: Optional[str]
+    text: str
+    urgency: Optional[str]
+    status: Optional[str]

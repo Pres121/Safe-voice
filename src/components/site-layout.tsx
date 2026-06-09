@@ -10,7 +10,7 @@ const nav = [
 function BrandMark() {
   return (
     <img
-      src="/logo.jpg"
+      src="/mzuni_logo.png"
       alt="Mzuzu University Logo"
       className="inline-flex h-9 w-9 rounded-[10px] bg-primary/10 object-contain p-0.5 shadow-card ring-1 ring-primary/30"
     />

@@ -125,7 +125,7 @@ function HomePage() {
         <div className="relative mx-auto max-w-5xl px-4 pb-40 pt-16 text-center sm:px-6 sm:pt-24 lg:pt-28">
           <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 shadow-soft ring-1 ring-primary/30 animate-scale-in p-2">
             <img
-              src="/logo.jpg"
+              src="/mzuni_logo."
               alt="Mzuzu University Logo"
               className="h-full w-full object-contain"
             />
