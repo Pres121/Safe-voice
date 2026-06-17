@@ -12,6 +12,7 @@ from .db import init_db, engine, get_session
 from .models import User, Report
 from .schemas import PredictRequest, PredictResponse, ReportCreate, Token, ReportCreateResponse, ReportListItem
 from .auth import verify_password, get_password_hash, create_access_token
+# Admin router will be imported after get_current_user is defined to avoid circular import
 from .ml import predict
 from sqlmodel import Session, select
 
@@ -44,7 +45,7 @@ def on_startup():
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == "admin")).first()
         if not user:
-            u = User(username="admin", hashed_password=get_password_hash("password"))
+            u = User(username="admin", hashed_password=get_password_hash("password"), role="admin")
             session.add(u)
             session.commit()
 
@@ -95,7 +96,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         user = session.exec(select(User).where(User.username == form_data.username)).first()
         if not user or not verify_password(form_data.password, user.hashed_password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
-        access_token = create_access_token({"sub": user.username})
+        access_token = create_access_token({"sub": user.username, "role": user.role})
         return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -115,6 +116,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         if not user:
             raise HTTPException(status_code=401, detail="Invalid token user")
         return user
+from .admin_routes import router as admin_router
 
 
 @reports_router.get("", response_model=List[ReportListItem])
@@ -163,3 +165,4 @@ def login_compat(form_data: OAuth2PasswordRequestForm = Depends()):
 app.include_router(ml_router)
 app.include_router(reports_router)
 app.include_router(auth_router)
+app.include_router(admin_router)
