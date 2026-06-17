@@ -9,16 +9,16 @@ class PredictResponse(BaseModel):
     urgency: str
 
 class ReportCreate(BaseModel):
-    report_id: Optional[str]
-    category: Optional[str]
+    report_id: Optional[str] = None
+    category: Optional[str] = None
     text: str
-    reporting_type: Optional[str]
-    full_name: Optional[str]
-    phone: Optional[str]
-    email: Optional[str]
-    preferred_contact: Optional[str]
-    incident_date: Optional[str]
-    incident_location: Optional[str]
+    reporting_type: Optional[str] = None
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    preferred_contact: Optional[str] = None
+    incident_date: Optional[str] = None
+    incident_location: Optional[str] = None
 
 class Token(BaseModel):
     access_token: str
@@ -33,7 +33,7 @@ class ReportCreateResponse(BaseModel):
 class ReportListItem(BaseModel):
     report_id: str
     created_at: str
-    category: Optional[str]
+    category: Optional[str] = None
     text: str
-    urgency: Optional[str]
-    status: Optional[str]
+    urgency: Optional[str] = None
+    status: Optional[str] = None

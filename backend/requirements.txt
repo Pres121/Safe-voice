@@ -7,3 +7,4 @@ passlib==1.7.4
 joblib==1.5.3
 pydantic==2.13.4
 python-multipart==0.0.32
+scikit-learn

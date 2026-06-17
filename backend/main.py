@@ -3,6 +3,10 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from typing import List
 from datetime import datetime
 import json
+import os
+
+# API version prefix
+API_V1 = "/api/v1"
 
 from .db import init_db, engine, get_session
 from .models import User, Report
@@ -15,19 +19,22 @@ app = FastAPI(title="SafeVoice Backend")
 
 from fastapi.middleware.cors import CORSMiddleware
 
+# Allowed origins can be set via environment variable ALLOWED_ORIGINS (comma‑separated)
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=API_V1 + "/auth/token")
 
-ml_router = APIRouter(prefix="/api/v1/ml", tags=["ml"])
-reports_router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
-auth_router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+ml_router = APIRouter(prefix=API_V1 + "/ml", tags=["ml"])
+reports_router = APIRouter(prefix=API_V1 + "/reports", tags=["reports"])
+auth_router = APIRouter(prefix=API_V1 + "/auth", tags=["auth"])
 
 
 @app.on_event("startup")
@@ -51,30 +58,35 @@ def api_predict(req: PredictRequest):
 
 @reports_router.post("", response_model=ReportCreateResponse)
 def create_report(rc: ReportCreate):
-    label = predict(rc.text) or "unknown"
-    report_id = rc.report_id or f"SWR-{int(datetime.utcnow().timestamp())}"
-    r = Report(
-        report_id=report_id,
-        created_at=datetime.utcnow(),
-        category=rc.category,
-        text=rc.text,
-        reporting_type=rc.reporting_type,
-        full_name=rc.full_name,
-        phone=rc.phone,
-        email=rc.email,
-        preferred_contact=rc.preferred_contact,
-        incident_date=rc.incident_date,
-        incident_location=rc.incident_location,
-        urgency=label,
-        status="New",
-        notes=json.dumps([]),
-        audit_log=json.dumps([{"id": "init", "at": datetime.utcnow().isoformat(), "action": "Report submitted", "by": "Student"}]),
-    )
-    with Session(engine) as session:
-        session.add(r)
-        session.commit()
-        session.refresh(r)
-    return {"report_id": r.report_id, "urgency": r.urgency or "unknown"}
+    try:
+        label = predict(rc.text) or "unknown"
+        import uuid
+        report_id = rc.report_id or f"SWR-{uuid.uuid4().hex[:8].upper()}"
+        r = Report(
+            report_id=report_id,
+            created_at=datetime.utcnow(),
+            category=rc.category,
+            text=rc.text,
+            reporting_type=rc.reporting_type,
+            full_name=rc.full_name,
+            phone=rc.phone,
+            email=rc.email,
+            preferred_contact=rc.preferred_contact,
+            incident_date=rc.incident_date,
+            incident_location=rc.incident_location,
+            urgency=label,
+            status="New",
+            notes=json.dumps([]),
+            audit_log=json.dumps([{"id": "init", "at": datetime.utcnow().isoformat(), "action": "Report submitted", "by": "Student"}]),
+        )
+        with Session(engine) as session:
+            session.add(r)
+            session.commit()
+            session.refresh(r)
+        return {"report_id": r.report_id, "urgency": r.urgency or "unknown"}
+    except Exception as e:
+        print(f"Error creating report: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @auth_router.post("/token", response_model=Token)

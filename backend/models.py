@@ -11,17 +11,17 @@ class Report(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     report_id: str = Field(index=True, unique=True)
     created_at: datetime
-    category: Optional[str]
+    category: Optional[str] = None
     text: str
-    reporting_type: Optional[str]
-    full_name: Optional[str]
-    phone: Optional[str]
-    email: Optional[str]
-    preferred_contact: Optional[str]
-    incident_date: Optional[str]
-    incident_location: Optional[str]
-    urgency: Optional[str]
-    status: Optional[str]
-    notes: Optional[str]
-    audit_log: Optional[str]
-    assigned_to: Optional[str]
+    reporting_type: Optional[str] = None
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    preferred_contact: Optional[str] = None
+    incident_date: Optional[str] = None
+    incident_location: Optional[str] = None
+    urgency: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = Field(default='[]')
+    audit_log: Optional[str] = Field(default='[]')
+    assigned_to: Optional[str] = None

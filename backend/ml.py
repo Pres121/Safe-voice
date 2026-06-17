@@ -7,7 +7,7 @@ _MODEL = None
 def load_model():
     global _MODEL
     if _MODEL is None:
-        base = os.path.dirname(os.path.dirname(__file__))
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         model_path = os.path.join(base, "ML_model", "student_welfare_model (1).pkl")
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found at {model_path}")
