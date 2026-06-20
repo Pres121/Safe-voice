@@ -92,6 +92,7 @@ function ReportPage() {
       if (!res.ok) throw new Error("Failed to submit report");
       const json = await res.json();
       const id = json.report_id;
+      const urgency = (json.urgency ?? json.severity ?? "Low") as "Critical" | "High" | "Medium" | "Low";
       // mirror into local store for admin UI
       addReport({
         id,
@@ -105,7 +106,7 @@ function ReportPage() {
         preferredContact: reportingType === "Non-Anonymous" ? (preferredContact || undefined) as ContactMethod | undefined : undefined,
         incidentDate: incidentDate || undefined,
         incidentLocation: incidentLocation.trim() || undefined,
-        urgency: json.urgency,
+        urgency,
         status: "New",
         notes: [],
         auditLog: [

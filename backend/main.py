@@ -1,168 +1,162 @@
-from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from typing import List
-from datetime import datetime
-import json
-import os
+from __future__ import annotations
 
-# API version prefix
-API_V1 = "/api/v1"
+from typing import Optional
+from uuid import uuid4
 
-from .db import init_db, engine, get_session
-from .models import User, Report
-from .schemas import PredictRequest, PredictResponse, ReportCreate, Token, ReportCreateResponse, ReportListItem
-from .auth import verify_password, get_password_hash, create_access_token
-# Admin router will be imported after get_current_user is defined to avoid circular import
-from .ml import predict
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
-app = FastAPI(title="SafeVoice Backend")
+from .ml import predict_severity
+from .models import Report, get_session, init_db
 
-from fastapi.middleware.cors import CORSMiddleware
-
-# Allowed origins can be set via environment variable ALLOWED_ORIGINS (comma‑separated)
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
-
+app = FastAPI(title="Student Welfare API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=API_V1 + "/auth/token")
-
-ml_router = APIRouter(prefix=API_V1 + "/ml", tags=["ml"])
-reports_router = APIRouter(prefix=API_V1 + "/reports", tags=["reports"])
-auth_router = APIRouter(prefix=API_V1 + "/auth", tags=["auth"])
+init_db()
 
 
-@app.on_event("startup")
-def on_startup():
-    init_db()
-    # create default admin user if missing
-    with Session(engine) as session:
-        user = session.exec(select(User).where(User.username == "admin")).first()
-        if not user:
-            u = User(username="admin", hashed_password=get_password_hash("password"), role="admin")
-            session.add(u)
-            session.commit()
+class ReportPayload(BaseModel):
+    category: str
+    text: str
+    reporting_type: Optional[str] = None
+    incident_date: Optional[str] = None
+    incident_location: Optional[str] = None
 
 
-@ml_router.post("/predict", response_model=PredictResponse)
-def api_predict(req: PredictRequest):
-    label = predict(req.text)
-    urgency = label or "Low"
-    return {"label": label or "unknown", "urgency": urgency}
+class PredictPayload(BaseModel):
+    text: str
 
 
-@reports_router.post("", response_model=ReportCreateResponse)
-def create_report(rc: ReportCreate):
-    try:
-        label = predict(rc.text) or "unknown"
-        import uuid
-        report_id = rc.report_id or f"SWR-{uuid.uuid4().hex[:8].upper()}"
-        r = Report(
-            report_id=report_id,
-            created_at=datetime.utcnow(),
-            category=rc.category,
-            text=rc.text,
-            reporting_type=rc.reporting_type,
-            full_name=rc.full_name,
-            phone=rc.phone,
-            email=rc.email,
-            preferred_contact=rc.preferred_contact,
-            incident_date=rc.incident_date,
-            incident_location=rc.incident_location,
-            urgency=label,
-            status="New",
-            notes=json.dumps([]),
-            audit_log=json.dumps([{"id": "init", "at": datetime.utcnow().isoformat(), "action": "Report submitted", "by": "Student"}]),
-        )
-        with Session(engine) as session:
-            session.add(r)
-            session.commit()
-            session.refresh(r)
-        return {"report_id": r.report_id, "urgency": r.urgency or "unknown"}
-    except Exception as e:
-        print(f"Error creating report: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+CATEGORY_ALIASES = {
+    "Mental Health": "Mental & Academic Well-being",
+    "Academic Stress": "Mental & Academic Well-being",
+    "Financial Difficulties": "Economic & Housing Support",
+    "Housing Problems": "Economic & Housing Support",
+    "Health Concerns": "Health & Personal Care",
+    "Harassment": "Safety, Abuse & Harassment",
+    "Abuse": "Safety, Abuse & Harassment",
+    "Safety Concerns": "Safety, Abuse & Harassment",
+    "Discrimination": "Discrimination & Social Inclusion",
+    "Other": "Other",
+}
+
+VALID_CATEGORIES = {
+    "Mental & Academic Well-being",
+    "Economic & Housing Support",
+    "Health & Personal Care",
+    "Safety, Abuse & Harassment",
+    "Discrimination & Social Inclusion",
+    "Bullying",
+    "Other",
+}
 
 
-@auth_router.post("/token", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    with Session(engine) as session:
-        user = session.exec(select(User).where(User.username == form_data.username)).first()
-        if not user or not verify_password(form_data.password, user.hashed_password):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
-        access_token = create_access_token({"sub": user.username, "role": user.role})
-        return {"access_token": access_token, "token_type": "bearer"}
+@app.get("/")
+def home() -> dict[str, str]:
+    return {"message": "Student Welfare API Running"}
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    # simple token verification
-    from jose import jwt, JWTError
-    from .auth import SECRET_KEY, ALGORITHM
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if username is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    with Session(engine) as session:
-        user = session.exec(select(User).where(User.username == username)).first()
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid token user")
-        return user
-from .admin_routes import router as admin_router
-
-
-@reports_router.get("", response_model=List[ReportListItem])
-def list_reports(user: User = Depends(get_current_user)):
-    with Session(engine) as session:
-        rows = session.exec(select(Report).order_by(Report.created_at.desc())).all()
-        out = []
-        for r in rows:
-            out.append({
-                "report_id": r.report_id,
-                "created_at": r.created_at.isoformat(),
-                "category": r.category,
-                "text": r.text,
-                "urgency": r.urgency,
-                "status": r.status,
-            })
-    return out
-
-
-@app.get("/health", tags=["system"])
-def health():
+@app.get("/health")
+def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-# Backward-compatible aliases for existing frontend callers.
-@app.post("/predict", response_model=PredictResponse, tags=["compat"])
-def api_predict_compat(req: PredictRequest):
-    return api_predict(req)
+@app.get("/api/v1/reports")
+def list_reports() -> dict:
+    with get_session() as session:
+        reports = session.exec(
+            select(Report).order_by(Report.created_at.desc())
+        ).all()
+
+    return {
+        "count": len(reports),
+        "data": [
+            {
+                "report_id": report.report_id,
+                "category": report.category,
+                "text": report.text,
+                "severity": report.severity,
+                "reporting_type": report.reporting_type,
+                "incident_date": report.incident_date,
+                "incident_location": report.incident_location,
+                "created_at": report.created_at.isoformat(),
+            }
+            for report in reports
+        ],
+    }
 
 
-@app.post("/reports", response_model=ReportCreateResponse, tags=["compat"])
-def create_report_compat(rc: ReportCreate):
-    return create_report(rc)
+@app.post("/api/v1/ml/predict")
+def predict_endpoint(payload: PredictPayload) -> dict[str, str]:
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+
+    severity = predict_severity(text)
+    return {
+        "severity": severity,
+        "urgency": severity,
+    }
 
 
-@app.get("/reports", response_model=List[ReportListItem], tags=["compat"])
-def list_reports_compat(user: User = Depends(get_current_user)):
-    return list_reports(user)
+@app.post("/api/v1/reports")
+def create_report(payload: ReportPayload) -> dict:
+    text = payload.text.strip()
+    raw_category = payload.category.strip()
+    category = CATEGORY_ALIASES.get(raw_category, raw_category)
+
+    if not text:
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+
+    if category not in VALID_CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+
+    try:
+        severity = predict_severity(text)
+        report = Report(
+            report_id=str(uuid4()),
+            text=text,
+            category=category,
+            severity=severity,
+            reporting_type=payload.reporting_type,
+            incident_date=payload.incident_date,
+            incident_location=payload.incident_location,
+        )
+
+        with get_session() as session:
+            session.add(report)
+            session.commit()
+            session.refresh(report)
+
+        return {
+            "status": "success",
+            "report_id": report.report_id,
+            "category": report.category,
+            "severity": report.severity,
+            "urgency": report.severity,
+            "created_at": report.created_at.isoformat(),
+        }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Submission failed: {exc}",
+        )
 
 
-@app.post("/auth/token", response_model=Token, tags=["compat"])
-def login_compat(form_data: OAuth2PasswordRequestForm = Depends()):
-    return login(form_data)
+@app.delete("/api/v1/reports")
+def clear_reports() -> dict[str, str]:
+    with get_session() as session:
+        reports = session.exec(select(Report)).all()
+        for report in reports:
+            session.delete(report)
+        session.commit()
 
-
-app.include_router(ml_router)
-app.include_router(reports_router)
-app.include_router(auth_router)
-app.include_router(admin_router)
+    return {"message": "All reports deleted"}

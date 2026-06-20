@@ -1,25 +1,41 @@
-import os
-from joblib import load
-from typing import Optional
+from __future__ import annotations
 
-_MODEL = None
+from pathlib import Path
+from typing import Any
+
+import joblib
+
+MODEL_PATH = Path(__file__).resolve().parents[1] / "ML_model" / "student_welfare_model3.pkl"
+
+_MODEL: Any | None = None
+
+LABEL_MAP = {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+}
+
+
+def normalize_prediction(value: Any) -> str:
+    """Normalize raw model labels into user-friendly severity strings."""
+    label = str(value).strip().lower()
+    return LABEL_MAP.get(label, "Low")
+
 
 def load_model():
     global _MODEL
     if _MODEL is None:
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_path = os.path.join(base, "ML_model", "student_welfare_model (1).pkl")
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found at {model_path}")
-        _MODEL = load(model_path)
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(
+                f"Model file was not found at {MODEL_PATH}"
+            )
+        _MODEL = joblib.load(MODEL_PATH)
     return _MODEL
 
-def predict(text: str) -> Optional[str]:
+
+def predict_severity(text: str) -> str:
+    """Predict severity for a report text using the trained model."""
     model = load_model()
-    try:
-        pred = model.predict([text])
-        if len(pred) > 0:
-            return str(pred[0])
-    except Exception:
-        return None
-    return None
+    raw_prediction = model.predict([text])[0]
+    return normalize_prediction(raw_prediction)

@@ -8,4 +8,7 @@ export default defineConfig({
   build: {
     outDir: "dist/client",
   },
+  server: {
+    allowedHosts: ['unexempt-improperly-esmeralda.ngrok-free.dev']
+  },
 });

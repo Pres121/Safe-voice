@@ -23,7 +23,7 @@ class Report(SQLModel, table=True):
     incident_date: Optional[str]
 
 @app.post("/test")
-def test_endpoint(rc: ReportCreate):
+def endpoint(rc: ReportCreate):
     try:
         r = Report(
             report_id="123",
