@@ -92,6 +92,9 @@ function AdminOverview() {
             <Link to="/admin/analytics" className="flex items-center justify-between rounded-xl border border-border px-4 py-3 hover:bg-secondary/50">
               <span className="font-medium">Analytics</span><ArrowRight className="h-4 w-4 text-muted-foreground" />
             </Link>
+            <Link to="/admin/system" className="flex items-center justify-between rounded-xl border border-border px-4 py-3 hover:bg-secondary/50">
+              <span className="font-medium">System & model</span><ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
             <Link to="/report" className="flex items-center justify-between rounded-xl border border-border px-4 py-3 hover:bg-secondary/50">
               <span className="font-medium">Student report form</span><ArrowRight className="h-4 w-4 text-muted-foreground" />
             </Link>

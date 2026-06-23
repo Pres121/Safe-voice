@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicLayout } from "@/components/site-layout";
+import { PublicLayout, PageIntro } from "@/components/site-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,12 +14,10 @@ import {
   WELFARE_CATEGORIES, type WelfareCategory, type ReportingType, type ContactMethod,
 } from "@/lib/reports/types";
 import { addReport } from "@/lib/reports-store";
-import { CheckCircle2, ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
+import { CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-const FASTAPI_BASE_URL =
-  (import.meta.env.VITE_FASTAPI_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
-  "http://localhost:8000";
+import { FASTAPI_BASE_URL } from "@/lib/api/backend";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
@@ -161,17 +159,13 @@ function ReportPage() {
 
   return (
     <PublicLayout>
-      <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Confidential & secure
-          </div>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">Report a concern</h1>
-          <p className="mt-3 text-muted-foreground">
-            Take your time. Share as much or as little as you're comfortable with.
-          </p>
-        </div>
+      <PageIntro
+        eyebrow="Confidential & secure"
+        title="Report a concern"
+        description="Take your time. Share as much or as little as you're comfortable with."
+      />
 
+      <section className="mx-auto max-w-3xl px-4 pb-16 sm:px-6">
         <form
           onSubmit={onSubmit}
           className="space-y-6 rounded-3xl border border-border bg-card p-6 shadow-card sm:p-8"

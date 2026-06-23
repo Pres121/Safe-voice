@@ -38,9 +38,12 @@ export interface Report {
   preferredContact?: ContactMethod;
   incidentDate?: string;
   incidentLocation?: string;
+  locationLat?: number;
+  locationLng?: number;
   urgency: Urgency;
   status: ReportStatus;
   notes: { id: string; author: string; createdAt: string; text: string }[];
   assignedTo?: string;
+  studentId?: string;
   auditLog: { id: string; at: string; action: string; by: string }[];
 }

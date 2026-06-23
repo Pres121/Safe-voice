@@ -1,16 +1,21 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useReport, setStatus, addNote, assign } from "@/lib/reports-store";
+import { createFileRoute, Link, useParams, useNavigate } from "@tanstack/react-router";
+import { useReport, setStatus, addNote, assign, deleteReport } from "@/lib/reports-store";
 import { UrgencyBadge, StatusBadge } from "@/components/badges";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { STATUSES, type ReportStatus } from "@/lib/reports/types";
 import { format } from "date-fns";
-import { ArrowLeft, Calendar, MapPin, Mail, Phone, MessageCircle, User, EyeOff } from "lucide-react";
+import { ArrowLeft, Calendar, Hash, MapPin, User, EyeOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { FASTAPI_BASE_URL } from "@/lib/api/backend";
 
 export const Route = createFileRoute("/admin/reports/$id")({
   component: ReportDetail,
@@ -23,9 +28,24 @@ export const Route = createFileRoute("/admin/reports/$id")({
 
 function ReportDetail() {
   const { id } = useParams({ from: "/admin/reports/$id" });
+  const navigate = useNavigate();
   const report = useReport(id);
   const [note, setNote] = useState("");
   const [officer, setOfficer] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!report) return;
+    setDeleting(true);
+    const result = await deleteReport(report.id);
+    setDeleting(false);
+    if (result.ok) {
+      toast.success("Report deleted");
+      navigate({ to: "/admin/reports" });
+    } else {
+      toast.error(result.error ?? "Failed to delete report");
+    }
+  }
 
   if (!report) {
     return (
@@ -55,6 +75,30 @@ function ReportDetail() {
         <div className="flex items-center gap-2">
           <UrgencyBadge urgency={report.urgency} />
           <StatusBadge status={report.status} />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="rounded-full text-critical hover:text-critical" disabled={deleting}>
+                <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this report?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently remove this report from the database. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-critical text-critical-foreground hover:bg-critical/90"
+                  onClick={handleDelete}
+                >
+                  Delete report
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
@@ -140,19 +184,36 @@ function ReportDetail() {
               <Row icon={report.reportingType === "Anonymous" ? EyeOff : User} label="Type" value={report.reportingType} />
               <Row icon={Calendar} label="Date of incident" value={report.incidentDate ?? "—"} />
               <Row icon={MapPin} label="Location" value={report.incidentLocation ?? "—"} />
+              {report.locationLat !== undefined && report.locationLng !== undefined && (
+                <div className="flex items-start justify-between border-b border-border/60 pb-3 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">GPS Coordinates</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-xs">{report.locationLat.toFixed(6)}, {report.locationLng.toFixed(6)}</p>
+                    <a
+                      href={`https://maps.google.com/?q=${report.locationLat},${report.locationLng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex text-xs text-primary hover:underline"
+                    >
+                      View on map →
+                    </a>
+                  </div>
+                </div>
+              )}
             </dl>
           </Section>
 
-          {report.reportingType === "Non-Anonymous" && (
-            <Section title="Contact information">
-              <dl className="space-y-3 text-sm">
-                <Row icon={User} label="Name" value={report.fullName ?? "—"} />
-                <Row icon={Mail} label="Email" value={report.email ?? "—"} />
-                <Row icon={Phone} label="Phone" value={report.phone ?? "—"} />
-                <Row icon={MessageCircle} label="Preferred" value={report.preferredContact ?? "—"} />
-              </dl>
-            </Section>
-          )}
+          <Section title="Student identity">
+            <div className="rounded-xl border border-dashed border-border bg-secondary/30 p-3 text-sm">
+              <Row icon={Hash} label="Student ID" value={report.studentId ?? "—"} />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Only a generated student ID is visible to administrators. Personal email and name are kept private.
+              </p>
+            </div>
+          </Section>
 
           <Section title="ML prediction">
             <div className="rounded-xl border border-dashed border-border bg-secondary/30 p-3 text-sm">
@@ -161,8 +222,10 @@ function ReportDetail() {
                 <UrgencyBadge urgency={report.urgency} />
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Provided by the urgency classification service. Wire <code className="rounded bg-background px-1">POST /predict</code> in <code className="rounded bg-background px-1">src/lib/ml-service.ts</code>.
+                Classified by <code className="rounded bg-background px-1">student_welfare_model3.pkl</code> via{" "}
+                <code className="rounded bg-background px-1">POST /api/v1/ml/predict</code> on submit.
               </p>
+              <p className="mt-1 font-mono text-[10px] text-muted-foreground/70">{FASTAPI_BASE_URL}</p>
             </div>
           </Section>
         </div>

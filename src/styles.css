@@ -169,8 +169,11 @@
 
 .bg-dotted {
   background-color: oklch(0.98 0.008 145);
-  background-image: radial-gradient(oklch(0.6 0.12 145 / 0.15) 1px, transparent 1px);
-  background-size: 14px 14px;
+  background-image:
+    radial-gradient(oklch(0.6 0.12 145 / 0.12) 1px, transparent 1px),
+    radial-gradient(at 30% 0%, oklch(0.94 0.06 145 / 0.35) 0px, transparent 55%),
+    radial-gradient(at 80% 10%, oklch(0.95 0.05 110 / 0.25) 0px, transparent 50%);
+  background-size: 14px 14px, 100% 100%, 100% 100%;
 }
 
 html {
@@ -203,6 +206,18 @@ html {
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-rise-in { animation: rise-in 0.6s ease-out both; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in { animation: scale-in 0.5s ease-out both; }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in { animation: fade-in 0.6s ease-out both; }
 
 /* Scroll-reveal utility used by <Reveal /> */
 .reveal {

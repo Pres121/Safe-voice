@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { Report, ReportStatus, WelfareCategory } from "./reports/types";
+import { deleteReportFromApi, fetchReportsFromApi, mapApiReportToReport } from "./api/backend";
 
 const STORAGE_KEY = "swrs:reports:v1";
 
@@ -106,6 +107,43 @@ export function assign(id: string, officer: string, by = "Admin") {
       ...r.auditLog,
     ],
   }));
+}
+
+export async function syncReportsFromApi(): Promise<{ ok: boolean; error?: string; count?: number }> {
+  try {
+    const rows = await fetchReportsFromApi();
+    ensureInit();
+    const existingById = new Map(state.map((r) => [r.id, r]));
+
+    if (rows.length > 0) {
+      state = rows.map((row) => mapApiReportToReport(row, existingById.get(row.report_id)));
+    }
+
+    persist();
+    return { ok: true, count: rows.length };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to sync reports" };
+  }
+}
+
+export async function deleteReport(id: string): Promise<{ ok: boolean; error?: string }> {
+  ensureInit();
+  const isApiReport = !id.startsWith("SWR-");
+
+  if (isApiReport) {
+    try {
+      await deleteReportFromApi(id);
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : "Failed to delete report from server",
+      };
+    }
+  }
+
+  state = state.filter((r) => r.id !== id);
+  persist();
+  return { ok: true };
 }
 
 export function generateReportId() {

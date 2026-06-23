@@ -3,16 +3,16 @@ import { Link, useRouterState } from "@tanstack/react-router";
 
 const nav = [
   { to: "/", label: "Home" },
-  { to: "/report", label: "Report" },
   { to: "/about", label: "About" },
+  { to: "/comfort-zone", label: "Comfort Zone" },
 ] as const;
 
-function BrandMark() {
+function BrandMark({ size = "sm" }: { size?: "sm" | "md" }) {
   return (
     <img
       src="/mzuni_logo.png"
       alt="Mzuzu University Logo"
-      className="inline-flex h-9 w-9 rounded-[10px] bg-primary/10 object-contain p-0.5 shadow-card ring-1 ring-primary/30"
+      className={`object-contain ${size === "md" ? "h-11 w-11" : "h-9 w-9"}`}
     />
   );
 }
@@ -50,7 +50,7 @@ function AnimatedHamburger({
   );
 }
 
-export function SiteHeader() {
+export function SiteHeader({ className = "" }: { className?: string }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -79,8 +79,8 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="relative z-50 w-full bg-transparent">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 sm:px-10">
+    <header className={`relative z-50 w-full ${className}`}>
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 sm:h-[4.5rem] sm:px-10">
         <Link
           to="/"
           className="flex items-center gap-2.5 font-semibold tracking-tight text-foreground"
@@ -90,21 +90,27 @@ export function SiteHeader() {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden items-center gap-8 md:flex absolute left-1/2 -translate-x-1/2">
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 md:flex">
           {nav.map((n) => (
             <Link
               key={n.to}
               to={n.to}
               activeOptions={{ exact: n.to === "/" }}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              activeProps={{ className: "text-foreground" }}
+              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+              activeProps={{ className: "bg-primary/10 text-primary font-semibold" }}
             >
               {n.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-4">
+          <Link
+            to="/student"
+            className="hidden rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 md:inline-flex"
+          >
+            Sign In
+          </Link>
           <AnimatedHamburger
             open={mobileOpen}
             onClick={() => setMobileOpen((o) => !o)}
@@ -154,6 +160,12 @@ export function SiteHeader() {
               );
             })}
             <hr className="my-2 border-border" />
+            <Link
+              to="/student"
+              className="rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground text-center transition-colors hover:bg-primary/90"
+            >
+              Sign In
+            </Link>
           </nav>
         </div>
       </div>
@@ -164,20 +176,55 @@ export function SiteHeader() {
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border/60 bg-card/50">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:px-6">
-        <p>© {new Date().getFullYear()} SafeVoice — Student Welfare Reporting System.</p>
-        <p>Built for student wellbeing.</p>
+    <footer className="border-t border-border/50 bg-secondary/30">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-10 text-sm text-muted-foreground sm:flex-row sm:px-6">
+        <div className="flex items-center gap-2.5">
+          <BrandMark />
+          <p>© {new Date().getFullYear()} SafeVoice</p>
+        </div>
+        <p className="text-center sm:text-right">Student welfare reporting — built for care and confidentiality.</p>
       </div>
     </footer>
   );
 }
 
-export function PublicLayout({ children }: { children: React.ReactNode }) {
+export function PageIntro({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6 sm:py-14">
+      {eyebrow && (
+        <p className="text-xs font-semibold uppercase tracking-widest text-primary">{eyebrow}</p>
+      )}
+      <h1 className="mt-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">{title}</h1>
+      {description && (
+        <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">{description}</p>
+      )}
+    </div>
+  );
+}
+
+export function PublicLayout({
+  children,
+  heroHeader = false,
+}: {
+  children: React.ReactNode;
+  heroHeader?: boolean;
+}) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <SiteHeader />
+    <div className="flex min-h-screen flex-col">
+      {!heroHeader && (
+        <div className="bg-dotted border-b border-border/40">
+          <SiteHeader />
+        </div>
+      )}
       <main key={pathname} className="flex-1 animate-page-in">
         {children}
       </main>

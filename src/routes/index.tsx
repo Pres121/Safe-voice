@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicLayout } from "@/components/site-layout";
+import { PublicLayout, SiteHeader } from "@/components/site-layout";
 import { HomeLoader } from "@/components/home-loader";
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import {
   Shield, Lock, Zap, HeartHandshake, ShieldCheck,
   ArrowRight, Send, Cpu, ClipboardCheck, CheckCircle2,
-  Check, Clock, Pin, Heart, MessageCircle, Sparkles,
+  Check, Pin, Heart, MessageCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -38,11 +38,10 @@ const steps = [
 
 function HomePage() {
   return (
-    <PublicLayout>
+    <PublicLayout heroHeader>
       <HomeLoader />
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-dotted">
-        {/* Mobile view is clean and uncongested with no overlapping float components */}
+      <section className="relative overflow-hidden bg-dotted bg-hero-gradient">
+        <SiteHeader />
 
         {/* === Desktop floating decoration layer === */}
         <div className="pointer-events-none absolute inset-0 hidden lg:block">
@@ -121,20 +120,17 @@ function HomePage() {
           </div>
         </div>
 
-        {/* Hero content */}
-        <div className="relative mx-auto max-w-5xl px-4 pb-40 pt-16 text-center sm:px-6 sm:pt-24 lg:pt-28">
-          <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 shadow-soft ring-1 ring-primary/30 animate-scale-in p-2">
-            <img
-              src="/mzuni_logo."
-              alt="Mzuzu University Logo"
-              className="h-full w-full object-contain"
-            />
-          </div>
+        <div className="relative mx-auto max-w-5xl px-4 pb-40 pt-10 text-center sm:px-6 sm:pt-14 lg:pt-16">
+          <img
+            src="/mzuni_logo.png"
+            alt="Mzuzu University Logo"
+            className="mx-auto mb-8 h-24 w-24 object-contain animate-scale-in sm:h-28 sm:w-28"
+          />
 
           <h1 className="mx-auto max-w-4xl text-balance text-4xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl animate-rise-in">
             Speak up, be heard,
             <br />
-            <span className="text-muted-foreground/70">be supported here</span>
+            <span className="text-primary/80">be supported here</span>
           </h1>
 
           <p
@@ -151,9 +147,9 @@ function HomePage() {
             <Button
               asChild
               size="lg"
-              className="rounded-full bg-primary px-7 py-6 text-base font-medium text-primary-foreground shadow-soft transition-transform hover:bg-primary/90 hover:-translate-y-0.5"
+              className="rounded-full bg-primary px-8 py-6 text-base font-semibold text-primary-foreground shadow-soft transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-card"
             >
-              <Link to="/report">Report an issue</Link>
+              <Link to="/student">Get started</Link>
             </Button>
           </div>
         </div>

@@ -41,13 +41,11 @@ export function HomeLoader() {
     >
       <div className="bg-dotted absolute inset-0 opacity-50" />
       <div className="relative flex flex-col items-center gap-6">
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 shadow-soft ring-1 ring-primary/30 animate-scale-in p-2">
-          <img
-            src="/mzuni_logo.png"
-            alt="Mzuzu University Logo"
-            className="h-full w-full object-contain animate-pulse"
-          />
-        </div>
+        <img
+          src="/mzuni_logo.png"
+          alt="Mzuzu University Logo"
+          className="h-24 w-24 object-contain animate-scale-in sm:h-28 sm:w-28"
+        />
         <h1 className="flex flex-wrap items-baseline justify-center gap-x-3 text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
           {words.map((w, i) => (
             <span

@@ -1,12 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useReports } from "@/lib/reports-store";
+import { useReports, deleteReport } from "@/lib/reports-store";
 import { UrgencyBadge, StatusBadge } from "@/components/badges";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Download, Search } from "lucide-react";
+import { Download, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { STATUSES, WELFARE_CATEGORIES, type Urgency, type ReportStatus, type WelfareCategory, type ReportingType } from "@/lib/reports/types";
 
 export const Route = createFileRoute("/admin/reports/")({
@@ -22,6 +27,18 @@ function ReportsTable() {
   const [category, setCategory] = useState<"all" | WelfareCategory>("all");
   const [status, setStatus] = useState<"all" | ReportStatus>("all");
   const [reporting, setReporting] = useState<"all" | ReportingType>("all");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    const result = await deleteReport(id);
+    setDeletingId(null);
+    if (result.ok) {
+      toast.success("Report deleted");
+    } else {
+      toast.error(result.error ?? "Failed to delete report");
+    }
+  }
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -123,9 +140,40 @@ function ReportsTable() {
                   <td className="px-4 py-3"><UrgencyBadge urgency={r.urgency} /></td>
                   <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
                   <td className="px-4 py-3 text-right">
-                    <Link to="/admin/reports/$id" params={{ id: r.id }} className="text-sm font-medium text-primary hover:underline">
-                      View
-                    </Link>
+                    <div className="inline-flex items-center gap-2">
+                      <Link to="/admin/reports/$id" params={{ id: r.id }} className="text-sm font-medium text-primary hover:underline">
+                        View
+                      </Link>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-critical"
+                            disabled={deletingId === r.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this report?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently remove report <span className="font-mono">{r.id}</span> from the system. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-critical text-critical-foreground hover:bg-critical/90"
+                              onClick={() => handleDelete(r.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </td>
                 </tr>
               ))}
